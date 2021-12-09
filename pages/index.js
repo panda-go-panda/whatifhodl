@@ -74,13 +74,13 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
   return (
     <div className="container">
       <Head>
-        <title>What if you invested last year?</title>
+        <title>What if you had invested in this coin last year?</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <main>
         <h1 className="title">
-          How much would you have if you invested
+          How much would you have if you had invested
           <div className="inputsWrapper">
             $<input className="inputField" defaultValue="1000" onChange={onInputChange} type="number" autoFocus />
             <span>in</span>
