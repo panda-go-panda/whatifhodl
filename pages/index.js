@@ -1,62 +1,131 @@
 import Head from 'next/head'
+import CoinGecko from 'coingecko-api'
+import React, { useEffect, useState } from 'react'
+
+const CoinGeckoClient = new CoinGecko()
+const usdFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD'
+})
 
 export default function Home() {
+  const [allCoins, setAllCoins] = useState([])
+  const [coinId, setCoinId] = useState('ethereum')
+  const [fiatTotal, setFiatTotal] = useState(1000)
+  const [newFiatTotal, setNewFiatTotal] = useState(0)
+  const currentCoin = allCoins.find(item => item.id === coinId)
+
+  const onSelectChange = (e) => {
+    setCoinId(e.target.value)
+  }
+
+  const onInputChange = (e) => {
+    setFiatTotal(e.target.value)
+  }
+
+  const calculateTotal = (percentageChange) => {
+    return Math.floor(fiatTotal * (1 + percentageChange / 100))
+  }
+
+  const renderCoinsResults = (coins, currentCoinId) => {
+    let count = 0;
+    const randomCoins = coins
+      .sort((a, b) => 0.5 - Math.random())
+      .filter((item) => {
+        if(item.id !== currentCoin && count < 5) {
+          count++
+          return true
+        }})
+
+    return randomCoins.map(coin => (
+      <div>{coin.symbol}: ${calculateTotal(coin.percentageChange)}</div>
+    ))
+    
+  }
+
+  useEffect(() => {
+    const fetchAllCoins = async () => {
+      const resp =  await CoinGeckoClient.coins.all()
+
+      const coinItems = resp.data.map(coin => ({
+        id: coin.id,
+        name: coin.name,
+        symbol: coin.symbol.toUpperCase(),
+        percentageChange: coin.market_data.price_change_percentage_1y,
+        image: coin.image.large
+      }))
+
+      console.log(resp.data)
+  
+      setAllCoins(coinItems)
+    }
+
+    fetchAllCoins()
+  }, [setAllCoins])
+
+  useEffect(() => {
+    if (!currentCoin) return
+    const newTotal = calculateTotal(currentCoin.percentageChange)
+    setNewFiatTotal(newTotal)
+  }, [currentCoin, fiatTotal, setNewFiatTotal])
+
   return (
     <div className="container">
       <Head>
-        <title>Create Next App</title>
+        <title>What if you invested last year?</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <main>
         <h1 className="title">
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
+          How much would you have if you invested
+          <div className="inputsWrapper">
+            $<input className="inputField" defaultValue="1000" onChange={onInputChange} type="number" autoFocus />
+            <span>in</span>
+            <select onChange={onSelectChange} value={coinId} className="coinSelect">
+              {allCoins.map(coin => (
+                <option key={coin.id} value={coin.id} title={coin.name}>{coin.symbol}</option>
+              ))}
+            </select>
+            {currentCoin && <img src={currentCoin.image} key={coinId} />}
+          </div>
+          exactly a year ago?
         </h1>
 
-        <p className="description">
-          Get started by editing <code>pages/index.js</code>
+        <p className="result">
+          {usdFormatter.format(newFiatTotal).replace(/.00$/, '')}
         </p>
 
-        <div className="grid">
-          <a href="https://nextjs.org/docs" className="card">
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className="card">
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className="card"
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className="card"
-          >
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
+        {/* <div className="otherCoins">
+          What if you invested in other coins? 
+          <div className="randomCoinsContainer">
+            {renderCoinsResults(allCoins, coinId)}
+          </div>
+        </div> */}
       </main>
 
       <footer>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <img src="/vercel.svg" alt="Vercel" className="logo" />
-        </a>
+        <div className="link">
+          Made by
+          <a
+            href="https://github.com/panda-go-panda"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Panda-go-panda
+          </a>
+        </div>
+        <div className="link">
+          Powered by 
+          <a
+            href="https://www.coingecko.com/en"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            CoinGecko
+          </a>
+        </div>
+
       </footer>
 
       <style jsx>{`
@@ -67,6 +136,8 @@ export default function Home() {
           flex-direction: column;
           justify-content: center;
           align-items: center;
+          background-color: #1F233C;
+          color: white;
         }
 
         main {
@@ -81,20 +152,22 @@ export default function Home() {
         footer {
           width: 100%;
           height: 100px;
-          border-top: 1px solid #eaeaea;
           display: flex;
           justify-content: center;
           align-items: center;
+          color: #8B92B2;
+          flex-direction: column;
+          font-size: 12px;
+          opacity: 0.5;
         }
 
-        footer img {
-          margin-left: 0.5rem;
+        .link {
+          padding-top: 5px;
         }
 
         footer a {
-          display: flex;
-          justify-content: center;
-          align-items: center;
+          display: inline;
+          padding-left: 5px;
         }
 
         a {
@@ -102,31 +175,33 @@ export default function Home() {
           text-decoration: none;
         }
 
-        .title a {
-          color: #0070f3;
-          text-decoration: none;
-        }
-
-        .title a:hover,
-        .title a:focus,
-        .title a:active {
+        a:hover,
+        a:focus,
+        a:active {
           text-decoration: underline;
         }
 
         .title {
           margin: 0;
           line-height: 1.15;
-          font-size: 4rem;
+          font-size: 3rem;
         }
 
-        .title,
-        .description {
+        .title {
           text-align: center;
+          line-height: 1.4;
         }
-
-        .description {
-          line-height: 1.5;
-          font-size: 1.5rem;
+        
+        .result {
+          font-size: 10rem;
+          text-align: center;
+          margin-top: 8vh;
+          margin-bottom: 0;
+          width: 100%;
+          line-height: 1.5em;
+          border-radius: 30px;
+          background: #1F2351;
+          background-image: linear-gradient( 90.1deg,  rgba(255,85,85,1) 0.1%, rgba(85,85,255,1) 100% );
         }
 
         code {
@@ -138,54 +213,81 @@ export default function Home() {
             DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace;
         }
 
-        .grid {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-wrap: wrap;
-
-          max-width: 800px;
-          margin-top: 3rem;
-        }
-
-        .card {
-          margin: 1rem;
-          flex-basis: 45%;
-          padding: 1.5rem;
-          text-align: left;
-          color: inherit;
-          text-decoration: none;
-          border: 1px solid #eaeaea;
-          border-radius: 10px;
-          transition: color 0.15s ease, border-color 0.15s ease;
-        }
-
-        .card:hover,
-        .card:focus,
-        .card:active {
-          color: #0070f3;
-          border-color: #0070f3;
-        }
-
-        .card h3 {
-          margin: 0 0 1rem 0;
-          font-size: 1.5rem;
-        }
-
-        .card p {
-          margin: 0;
-          font-size: 1.25rem;
-          line-height: 1.5;
-        }
-
         .logo {
           height: 1em;
         }
 
+        .inputsWrapper {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .inputsWrapper img {
+          display: block;
+          height: 0.6em;
+          width: 0.6em;
+          margin-left: 0.1em;
+        }
+
+        .inputsWrapper span {
+          padding: 0 0.4em;
+        }
+
+        .inputsWrapper input,
+        .inputsWrapper select {
+          font-size: 0.8em;
+          max-width: 6.5em;
+        }
+
+        .inputField {
+          background-color: transparent;
+          color: white;
+          border: none;
+          border-bottom: 1px solid white;
+        }
+
+        /* Chrome, Safari, Edge, Opera */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+
+        /* Firefox */
+        input[type=number] {
+          -moz-appearance: textfield;
+        }
+
+        .coinSelect {
+          background-color: transparent;
+          color: white;
+          border: none;
+          border-bottom: 1px solid white;
+        }
+
+        .otherCoins {
+          margin-top: 6em;
+          font-size: 1em;
+          text-align: center;
+        }
+
+        .randomCoinsContainer {
+          display: flex;
+        }
+
+        .randomCoinsContainer div {
+          border-left: 1px solid white;
+          border-right: 1px solid white;
+        }
+
         @media (max-width: 600px) {
-          .grid {
-            width: 100%;
-            flex-direction: column;
+
+          .title {
+            font-size: 1.5em;
+          }
+          .result {
+            font-size: 3em;
           }
         }
       `}</style>
