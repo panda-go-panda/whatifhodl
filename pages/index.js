@@ -1,22 +1,38 @@
 import Head from 'next/head'
+import { useRouter } from 'next/router'
 import CoinGecko from 'coingecko-api'
 import React, { useEffect, useState } from 'react'
 
-const CoinGeckoClient = new CoinGecko()
 const usdFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD'
 })
 
-export default function Home() {
-  const [allCoins, setAllCoins] = useState([])
-  const [coinId, setCoinId] = useState('ethereum')
+export const fetchAllCoins = async () => {
+  const CoinGeckoClient = new CoinGecko()
+  const resp =  await CoinGeckoClient.coins.all()
+
+  return resp.data.map(coin => ({
+    id: coin.id,
+    name: coin.name,
+    symbol: coin.symbol.toUpperCase(),
+    percentageChange: coin.market_data.price_change_percentage_1y,
+    image: coin.image.large
+  }))
+}
+
+export function CoinPage({ defaultCoinId, defaultAllCoins }) {
+  const router = useRouter()
+  const [coinId, setCoinId] = useState(defaultCoinId)
+  const [allCoins, setAllCoins] = useState(defaultAllCoins)
   const [fiatTotal, setFiatTotal] = useState(1000)
   const [newFiatTotal, setNewFiatTotal] = useState(0)
   const currentCoin = allCoins.find(item => item.id === coinId)
 
   const onSelectChange = (e) => {
-    setCoinId(e.target.value)
+    const newCoinId = e.target.value
+    setCoinId(newCoinId)
+    router.push(`/${newCoinId}`, undefined, { shallow: true })
   }
 
   const onInputChange = (e) => {
@@ -32,7 +48,7 @@ export default function Home() {
     const randomCoins = coins
       .sort((a, b) => 0.5 - Math.random())
       .filter((item) => {
-        if(item.id !== currentCoin && count < 5) {
+        if (item.id !== currentCoin && count < 5) {
           count++
           return true
         }})
@@ -40,28 +56,14 @@ export default function Home() {
     return randomCoins.map(coin => (
       <div>{coin.symbol}: ${calculateTotal(coin.percentageChange)}</div>
     ))
-    
   }
 
   useEffect(() => {
-    const fetchAllCoins = async () => {
-      const resp =  await CoinGeckoClient.coins.all()
-
-      const coinItems = resp.data.map(coin => ({
-        id: coin.id,
-        name: coin.name,
-        symbol: coin.symbol.toUpperCase(),
-        percentageChange: coin.market_data.price_change_percentage_1y,
-        image: coin.image.large
-      }))
-
-      console.log(resp.data)
-  
-      setAllCoins(coinItems)
+    const getCoins = async () => {
+      const data = await fetchAllCoins()
+      setAllCoins(data)
     }
-
-    fetchAllCoins()
-  }, [setAllCoins])
+  }, [])
 
   useEffect(() => {
     if (!currentCoin) return
@@ -87,7 +89,7 @@ export default function Home() {
                 <option key={coin.id} value={coin.id} title={coin.name}>{coin.symbol}</option>
               ))}
             </select>
-            {currentCoin && <img src={currentCoin.image} key={coinId} />}
+            {currentCoin && <img src={currentCoin.image} key={coinId} alt={currentCoin.name} />}
           </div>
           exactly a year ago?
         </h1>
@@ -308,4 +310,18 @@ export default function Home() {
       `}</style>
     </div>
   )
+}
+
+const Home = CoinPage
+export default Home
+
+export async function getStaticProps(context) {
+  const allCoins = await fetchAllCoins()
+
+  return {
+    props: {
+      defaultCoinId: context.params && context.params.coinId ? context.params.coinId : 'ethereum',
+      defaultAllCoins: allCoins
+    },
+  }
 }
