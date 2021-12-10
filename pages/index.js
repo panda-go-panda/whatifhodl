@@ -21,13 +21,18 @@ export const fetchAllCoins = async () => {
   }))
 }
 
+const calculateTotal = (fiatTotal, percentageChange) => {
+  return Math.floor(fiatTotal * (1 + percentageChange / 100))
+}
+
 export function CoinPage({ defaultCoinId, defaultAllCoins }) {
   const router = useRouter()
   const [coinId, setCoinId] = useState(defaultCoinId)
   const [allCoins, setAllCoins] = useState(defaultAllCoins)
   const [fiatTotal, setFiatTotal] = useState(1000)
-  const [newFiatTotal, setNewFiatTotal] = useState(0)
   const currentCoin = allCoins.find(item => item.id === coinId)
+  const newTotal = calculateTotal(fiatTotal, currentCoin ? currentCoin.percentageChange : 0)
+  const newTotalUsd = usdFormatter.format(newTotal).replace(/.00$/, '')
 
   const onSelectChange = (e) => {
     const newCoinId = e.target.value
@@ -37,10 +42,6 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
 
   const onInputChange = (e) => {
     setFiatTotal(e.target.value)
-  }
-
-  const calculateTotal = (percentageChange) => {
-    return Math.floor(fiatTotal * (1 + percentageChange / 100))
   }
 
   const renderCoinsResults = (coins, currentCoinId) => {
@@ -58,20 +59,12 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
     ))
   }
 
-  const newTotal = usdFormatter.format(newFiatTotal).replace(/.00$/, '')
-
   useEffect(() => {
     const getCoins = async () => {
       const data = await fetchAllCoins()
       setAllCoins(data)
     }
   }, [])
-
-  useEffect(() => {
-    if (!currentCoin) return
-    const newTotal = calculateTotal(currentCoin.percentageChange)
-    setNewFiatTotal(newTotal)
-  }, [currentCoin, fiatTotal, setNewFiatTotal])
 
   return (
     <div className="container">
@@ -80,7 +73,7 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
         <link rel="icon" href="/favicon.ico" />
         <meta property="og:title" content={`What if you had invested $1000 in ${currentCoin.name} a year ago?`} />
         <meta property="og:type" content="website" />
-        <meta property="og:description" content={`You would have ${newTotal}`} />
+        <meta property="og:description" content={`You would have ${newTotalUsd}`} />
         <meta property="og:image" content={currentCoin.image} />
       </Head>
 
@@ -101,7 +94,7 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
         </h1>
 
         <p className="result">
-          {newTotal}
+          {newTotalUsd}
         </p>
 
         {/* <div className="otherCoins">
