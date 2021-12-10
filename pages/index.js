@@ -58,6 +58,8 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
     ))
   }
 
+  const newTotal = usdFormatter.format(newFiatTotal).replace(/.00$/, '')
+
   useEffect(() => {
     const getCoins = async () => {
       const data = await fetchAllCoins()
@@ -76,9 +78,10 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
       <Head>
         <title>What if you had invested in this coin last year?</title>
         <link rel="icon" href="/favicon.ico" />
-        <meta property="og:title" content="What if you had invested in crypto a year ago?" />
+        <meta property="og:title" content={`What if you had invested $1000 in ${currentCoin.name} a year ago?`} />
         <meta property="og:type" content="website" />
-        <meta property="og:description" content="Learn how much would you have already if you had invested into crypto exactly a year ago." />
+        <meta property="og:description" content={`You would have ${newTotal}`} />
+        <meta property="og:image" content={currentCoin.image} />
       </Head>
 
       <main>
@@ -98,7 +101,7 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
         </h1>
 
         <p className="result">
-          {usdFormatter.format(newFiatTotal).replace(/.00$/, '')}
+          {newTotal}
         </p>
 
         {/* <div className="otherCoins">
