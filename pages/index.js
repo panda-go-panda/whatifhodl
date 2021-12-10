@@ -76,6 +76,9 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
       <Head>
         <title>What if you had invested in this coin last year?</title>
         <link rel="icon" href="/favicon.ico" />
+        <meta property="og:title" content="What if you had invested in crypto a year ago?" />
+        <meta property="og:type" content="website" />
+        <meta property="og:description" content="Learn how much would you have already if you had invested into crypto exactly a year ago." />
       </Head>
 
       <main>
