@@ -24,8 +24,13 @@ export const fetchAllCoins = async () => {
   })
 }
 
+const formatTotal = (total) => {
+  return usdFormatter.format(total).replace(/.00$/, '')
+}
+
 const calculateTotal = (fiatTotal, percentageChange) => {
-  return Math.floor(fiatTotal * (1 + percentageChange / 100))
+  const total =  Math.floor(fiatTotal * (1 + percentageChange / 100))
+  return formatTotal(total)
 }
 
 export function CoinPage({ defaultCoinId, defaultAllCoins }) {
@@ -35,7 +40,6 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
   const [fiatTotal, setFiatTotal] = useState(1000)
   const currentCoin = allCoins.find(item => item.id === coinId)
   const newTotal = calculateTotal(fiatTotal, currentCoin ? currentCoin.percentageChange : 0)
-  const newTotalUsd = usdFormatter.format(newTotal).replace(/.00$/, '')
 
   const onSelectChange = (e) => {
     const newCoinId = e.target.value
@@ -52,13 +56,13 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
     const randomCoins = coins
       .sort((a, b) => 0.5 - Math.random())
       .filter((item) => {
-        if (item.id !== currentCoin && count < 5) {
+        if (item.id !== currentCoin && item.percentageChange > 0 && count < 5) {
           count++
           return true
         }})
 
     return randomCoins.map(coin => (
-      <div>{coin.symbol}: ${calculateTotal(coin.percentageChange)}</div>
+      <div>{coin.symbol}: {calculateTotal(fiatTotal, coin.percentageChange)}</div>
     ))
   }
 
@@ -76,7 +80,7 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
         <link rel="icon" href="/favicon.ico" />
         <meta property="og:title" content={`What if you had invested $1000 in ${currentCoin.name} a year ago?`} />
         <meta property="og:type" content="website" />
-        <meta property="og:description" content={`You would have ${newTotalUsd}`} />
+        <meta property="og:description" content={`You would have ${newTotal}`} />
         <meta property="og:image" content={currentCoin.image} />
       </Head>
 
@@ -103,15 +107,15 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
         </h1>
 
         <p className="result">
-          {newTotalUsd}
+          {newTotal}
         </p>
 
-        {/* <div className="otherCoins">
+        <div className="otherCoins">
           What if you invested in other coins? 
           <div className="randomCoinsContainer">
             {renderCoinsResults(allCoins, coinId)}
           </div>
-        </div> */}
+        </div>
       </main>
 
       <footer>
@@ -280,18 +284,20 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
         }
 
         .otherCoins {
-          margin-top: 6em;
+          margin-top: 10em;
           font-size: 1em;
           text-align: center;
+          border: 1px solid #555A77;
+          padding: 40px;
+          box-shadow: 0px 0px 5px 5px #555A77;
         }
 
         .randomCoinsContainer {
+          margin-top: 30px;
           display: flex;
-        }
-
-        .randomCoinsContainer div {
-          border-left: 1px solid white;
-          border-right: 1px solid white;
+          justify-content: space-evenly;
+          gap: 20px;
+          flex-wrap: wrap;
         }
 
         @media (max-width: 600px) {
@@ -301,6 +307,10 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
           }
           .result {
             font-size: 3em;
+          }
+
+          .otherCoins {
+            padding: 20px;
           }
         }
       `}</style>
