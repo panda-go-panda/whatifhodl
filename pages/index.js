@@ -238,6 +238,8 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
           height: 0.6em;
           width: 0.6em;
           margin-left: 0.1em;
+          border-radius: 100%;
+          box-shadow: 0px 0px 5px 5px #555A77;
         }
 
         .inputsWrapper span {
