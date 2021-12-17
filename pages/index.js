@@ -10,7 +10,7 @@ const usdFormatter = new Intl.NumberFormat('en-US', {
 
 export const fetchAllCoins = async () => {
   const CoinGeckoClient = new CoinGecko()
-  const resp =  await CoinGeckoClient.coins.all()
+  const resp =  await CoinGeckoClient.coins.all({ per_page: 150 })
 
   return resp.data.map(coin => ({
     id: coin.id,
@@ -18,7 +18,10 @@ export const fetchAllCoins = async () => {
     symbol: coin.symbol.toUpperCase(),
     percentageChange: coin.market_data.price_change_percentage_1y,
     image: coin.image.large
-  }))
+  })).sort((a, b) => {
+    if (a.id === 'ethereum' || a.id === 'bitcoin') return 1
+    a.symbol.localeCompare(b.symbol)
+  })
 }
 
 const calculateTotal = (fiatTotal, percentageChange) => {
@@ -81,7 +84,13 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
         <h1 className="title">
           How much would you have if you had invested
           <div className="inputsWrapper">
-            $<input className="inputField" defaultValue="1000" onChange={onInputChange} type="number" autoFocus />
+            $<input 
+              className="inputField"
+              defaultValue="1000"
+              onChange={onInputChange}
+              type="number"
+              autoFocus
+            />
             <span>in</span>
             <select onChange={onSelectChange} value={coinId} className="coinSelect">
               {allCoins.map(coin => (
@@ -239,6 +248,7 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
         .inputsWrapper select {
           font-size: 0.8em;
           max-width: 6.5em;
+          outline: none;
         }
 
         .inputField {
