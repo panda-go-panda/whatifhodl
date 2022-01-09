@@ -10,7 +10,7 @@ const usdFormatter = new Intl.NumberFormat('en-US', {
 
 export const fetchAllCoins = async () => {
   const CoinGeckoClient = new CoinGecko()
-  const resp =  await CoinGeckoClient.coins.all({ per_page: 150 })
+  const resp =  await CoinGeckoClient.coins.all()
 
   return resp.data.map(coin => ({
     id: coin.id,
@@ -18,9 +18,11 @@ export const fetchAllCoins = async () => {
     symbol: coin.symbol.toUpperCase(),
     percentageChange: coin.market_data.price_change_percentage_1y,
     image: coin.image.large
-  })).sort((a, b) => {
+  }))
+  .sort((a, b) => {
     if (a.id === 'ethereum' || a.id === 'bitcoin') return 1
-    a.symbol.localeCompare(b.symbol)
+    if (b.id === 'ethereum' || b.id === 'bitcoin') return 1
+    return a > b.symbol ? 1 : b.symbol > a.symbol ? -1 : 0
   })
 }
 
@@ -33,13 +35,15 @@ const calculateTotal = (fiatTotal, percentageChange) => {
   return formatTotal(total)
 }
 
-export function CoinPage({ defaultCoinId, defaultAllCoins }) {
+export function CoinPage({ defaultCoinId, defaultAllCoins = [] }) {
   const router = useRouter()
   const [coinId, setCoinId] = useState(defaultCoinId)
   const [allCoins, setAllCoins] = useState(defaultAllCoins)
+  const [percentages, setPercentages] = useState({})
   const [fiatTotal, setFiatTotal] = useState(1000)
+
   const currentCoin = allCoins.find(item => item.id === coinId)
-  const newTotal = calculateTotal(fiatTotal, currentCoin ? currentCoin.percentageChange : 0)
+  const newTotal = calculateTotal(fiatTotal, percentages[coinId])
 
   const onSelectChange = (e) => {
     const newCoinId = e.target.value
@@ -51,27 +55,36 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
     setFiatTotal(e.target.value)
   }
 
-  const renderCoinsResults = (coins, currentCoinId) => {
+  const renderCoinResults = (coins, currentCoinId) => {
     let count = 0;
+
     const randomCoins = coins
-      .sort((a, b) => 0.5 - Math.random())
+      // .sort((a,b) => 0.5 - Math.random())
       .filter((item) => {
-        if (item.id !== currentCoin && item.percentageChange > 0 && count < 5) {
+        if (item.id !== currentCoin.id && item.percentageChange > 20 && count < 5) {
           count++
           return true
         }})
 
     return randomCoins.map(coin => (
-      <div>{coin.symbol}: {calculateTotal(fiatTotal, coin.percentageChange)}</div>
+      <div key={coin.id}>{coin.symbol}: {calculateTotal(fiatTotal, percentages[coin.id])}</div>
     ))
   }
 
   useEffect(() => {
+    const reduce = (data) => {
+      return data.reduce((result, coin) => {
+        result[coin.id] = coin.percentageChange
+        return result
+      }, {})
+    }
     const getCoins = async () => {
       const data = await fetchAllCoins()
-      setAllCoins(data)
+      setPercentages(reduce(data))
     }
-  }, [])
+    setPercentages(reduce(defaultAllCoins))
+    getCoins()
+  }, [setPercentages, defaultAllCoins])
 
   return (
     <div className="container">
@@ -96,9 +109,9 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
               autoFocus
             />
             <span>in</span>
-            <select onChange={onSelectChange} value={coinId} className="coinSelect">
-              {allCoins.map(coin => (
-                <option key={coin.id} value={coin.id} title={coin.name}>{coin.symbol}</option>
+            <select onChange={onSelectChange} className="coinSelect" value={coinId}>
+              {allCoins.map((coin, index) => (
+                <option key={coin.id} value={coin.id} title={coin.name} label={coin.symbol} />
               ))}
             </select>
             {currentCoin && <img src={currentCoin.image} key={coinId} alt={currentCoin.name} />}
@@ -113,7 +126,7 @@ export function CoinPage({ defaultCoinId, defaultAllCoins }) {
         <div className="otherCoins">
           What if you invested in other coins? 
           <div className="randomCoinsContainer">
-            {renderCoinsResults(allCoins, coinId)}
+            {renderCoinResults([...allCoins], coinId)}
           </div>
         </div>
       </main>
